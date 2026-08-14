@@ -4,6 +4,7 @@ import datetime as dt
 from typing import Any
 
 from app.domain.models import Ticket
+from app.retrieval.models import TicketChunk
 
 _DATE_FIELDS = ("created_at", "updated_at", "resolved_at")
 
@@ -37,3 +38,18 @@ def document_to_ticket(doc: dict[str, Any]) -> Ticket:
         if isinstance(value, dt.datetime):
             comment["date"] = value.date()
     return Ticket.model_validate(data)
+
+
+def chunk_to_document(chunk: TicketChunk) -> dict[str, Any]:
+    doc = chunk.model_dump()
+    doc["_id"] = doc.pop("id")
+    doc["created_at"] = dt.datetime.combine(doc["created_at"], dt.time.min)
+    return doc
+
+
+def document_to_chunk(doc: dict[str, Any]) -> TicketChunk:
+    data = dict(doc)
+    data["id"] = data.pop("_id")
+    if isinstance(data.get("created_at"), dt.datetime):
+        data["created_at"] = data["created_at"].date()
+    return TicketChunk.model_validate(data)
