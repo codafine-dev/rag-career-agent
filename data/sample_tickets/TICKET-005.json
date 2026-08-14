@@ -1,0 +1,18 @@
+{
+  "id": "TICKET-005",
+  "title": "Flaky integration tests in CI due to shared test database state",
+  "description": "CI intermittently fails with unique-constraint errors on the users table. Tests appear to be leaking state between runs when executed in parallel.",
+  "project": "core-api",
+  "technologies": ["Python", "Django", "pytest", "PostgreSQL"],
+  "labels": ["testing", "ci", "flaky-test"],
+  "links": [],
+  "related_tickets": [],
+  "comments": [
+    {"author": "lin", "text": "Root cause: a handful of tests used hardcoded emails/usernames instead of factory-generated unique values, so they collided when pytest-xdist ran them in different worker processes against the same test database template.", "date": "2025-11-04"}
+  ],
+  "implementation_notes": "Replaced hardcoded fixture values with factory_boy sequences to guarantee uniqueness per test, and confirmed each pytest-xdist worker gets its own Django test database (--create-db was masking this before). Added a CI lint rule flagging hardcoded email/username literals in test files going forward.",
+  "resolution": "Flaky failures stopped after the fix; CI has been stable for two weeks since.",
+  "created_at": "2025-11-04",
+  "updated_at": "2025-11-05",
+  "resolved_at": "2025-11-05"
+}

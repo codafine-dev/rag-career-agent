@@ -1,0 +1,20 @@
+{
+  "id": "TICKET-002",
+  "title": "Production incident: connection pool exhaustion on core-api",
+  "description": "core-api started returning 502s under normal traffic. Investigation showed PostgreSQL connections were maxed out. Root cause and fix needed.",
+  "project": "core-api",
+  "technologies": ["PostgreSQL", "Django", "AWS", "Docker"],
+  "labels": ["incident", "production", "database"],
+  "links": ["https://status.internal.example/incidents/482"],
+  "related_tickets": [],
+  "comments": [
+    {"author": "lin", "text": "Confirmed via pg_stat_activity that a background report-export view was opening a connection and holding it for the full duration of a large CSV export instead of streaming, sometimes for 10+ minutes.", "date": "2025-05-14"},
+    {"author": "lin", "text": "Short term: lowered CONN_MAX_AGE and added a dedicated smaller connection pool for the export endpoint so it can't starve the main pool.", "date": "2025-05-14"},
+    {"author": "oncall-lead", "text": "Good catch. Let's also add an alert on pg connection count so we see this before it pages customers next time.", "date": "2025-05-15"}
+  ],
+  "implementation_notes": "Rewrote the CSV export view to stream rows with server-side cursors (queryset.iterator()) instead of loading the full queryset, and moved it to a separate PgBouncer pool with a low max size so a runaway export can't exhaust connections available to normal request traffic. Added a CloudWatch alarm on RDS DatabaseConnections.",
+  "resolution": "Deployed streaming export + isolated connection pool. Incident did not recur over the following month. Alarm added to catch early warning signs.",
+  "created_at": "2025-05-14",
+  "updated_at": "2025-05-16",
+  "resolved_at": "2025-05-16"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "TICKET-001",
+  "title": "Add soft-delete support to Order model",
+  "description": "Orders are currently hard-deleted, which breaks downstream reporting and makes it impossible to investigate customer disputes after the fact. Add soft-delete behaviour to the Order model so that deleted orders are excluded from default querysets but remain in the database for audit purposes.",
+  "project": "billing-service",
+  "technologies": ["Django", "Python", "PostgreSQL"],
+  "labels": ["backend", "data-model"],
+  "links": [],
+  "related_tickets": ["TICKET-004"],
+  "comments": [
+    {"author": "lin", "text": "Went with a custom manager overriding get_queryset() rather than a third-party package, since we only needed the one behaviour and wanted to avoid the extra dependency.", "date": "2025-03-02"},
+    {"author": "reviewer", "text": "Please add a migration to backfill deleted_at as NULL for existing rows and add an index on it since we'll filter on it constantly.", "date": "2025-03-03"}
+  ],
+  "implementation_notes": "Added a `deleted_at` nullable timestamp column with a partial index (WHERE deleted_at IS NULL) to keep the default queryset fast. Added SoftDeleteManager and SoftDeleteQuerySet with a `.all_with_deleted()` escape hatch for admin/reporting code.",
+  "resolution": "Merged. Default Order.objects excludes soft-deleted rows; Order.all_objects gives full access. Existing hard-delete call sites in the refunds flow were updated to call .delete() which now sets deleted_at instead of removing the row.",
+  "created_at": "2025-03-01",
+  "updated_at": "2025-03-05",
+  "resolved_at": "2025-03-05"
+}

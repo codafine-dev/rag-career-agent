@@ -1,0 +1,19 @@
+{
+  "id": "TICKET-003",
+  "title": "Migrate legacy reporting tables to a normalized schema",
+  "description": "The reporting-platform database has three denormalized tables that duplicate data from core-api and have drifted out of sync. Migrate to a normalized schema with foreign keys back to the source of truth, without downtime for the nightly reporting job.",
+  "project": "reporting-platform",
+  "technologies": ["PostgreSQL", "Django", "Python"],
+  "labels": ["database", "migration", "data-integrity"],
+  "links": [],
+  "related_tickets": ["TICKET-001"],
+  "comments": [
+    {"author": "lin", "text": "Plan: expand-contract migration. Step 1 add new normalized tables and dual-write. Step 2 backfill with a management command in batches of 5k rows. Step 3 cut reads over. Step 4 drop old tables after a two-week bake period.", "date": "2025-07-08"},
+    {"author": "data-eng", "text": "Batching sounds right, just make sure the backfill command is resumable in case it gets killed mid-run.", "date": "2025-07-09"}
+  ],
+  "implementation_notes": "Used Django migrations for schema changes and a separate idempotent management command (tracked via a `backfill_progress` table keyed by last-migrated id) for the data backfill, so it could be safely re-run after interruption. Dual-write was implemented via a Django signal on the legacy models during the transition window.",
+  "resolution": "Backfill completed over 3 nights during low-traffic windows. Reads cut over to the normalized tables with no reported discrepancies. Legacy tables dropped after the two-week bake period with no incidents.",
+  "created_at": "2025-07-08",
+  "updated_at": "2025-07-29",
+  "resolved_at": "2025-07-29"
+}

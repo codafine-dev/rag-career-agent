@@ -1,0 +1,20 @@
+{
+  "id": "TICKET-004",
+  "title": "Add audit log export to S3 for compliance",
+  "description": "Compliance needs a nightly export of the audit_log table to an S3 bucket in a format they can query with Athena. Must not expose PII fields that aren't required for the compliance use case.",
+  "project": "billing-service",
+  "technologies": ["AWS", "Python", "PostgreSQL", "Django"],
+  "labels": ["compliance", "aws", "backend"],
+  "links": [],
+  "related_tickets": ["TICKET-001"],
+  "comments": [
+    {"author": "lin", "text": "Wrote a management command run via a scheduled ECS task rather than a Lambda, since the export needs the full Django ORM and app settings and the job can take a few minutes for large date ranges.", "date": "2025-09-02"},
+    {"author": "compliance-lead", "text": "Please confirm the export excludes raw card details and free-text customer notes fields.", "date": "2025-09-03"},
+    {"author": "lin", "text": "Confirmed, export uses an explicit allow-list of columns rather than a blanket dump of the table.", "date": "2025-09-03"}
+  ],
+  "implementation_notes": "Export command selects an explicit column allow-list, writes partitioned Parquet files by date, and uploads to S3 via boto3 with server-side encryption enabled. Scheduled via an ECS Fargate task triggered by EventBridge on a daily cron.",
+  "resolution": "Deployed and verified against a week of production data with Athena queries from the compliance team. No PII fields outside the allow-list are present in the export.",
+  "created_at": "2025-09-01",
+  "updated_at": "2025-09-10",
+  "resolved_at": "2025-09-10"
+}
