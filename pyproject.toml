@@ -5,12 +5,15 @@ description = "RAG + agent application over a real software engineering ticket h
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "pymongo>=4.7",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
     "ruff>=0.4",
+    "mongomock>=4.1",
 ]
 
 [tool.setuptools.packages.find]
