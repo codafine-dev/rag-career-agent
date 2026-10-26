@@ -8,6 +8,7 @@ dependencies = [
     "pydantic-settings>=2.2",
     "pymongo>=4.7",
     "openai>=1.30",
+    "google-genai>=1.0",
 ]
 
 [project.optional-dependencies]

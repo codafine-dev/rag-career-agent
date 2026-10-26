@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.llm.embeddings import OpenAIEmbeddingsProvider
+from app.llm.embeddings import GeminiEmbeddingsProvider, OpenAIEmbeddingsProvider
 
 
 def test_openai_embeddings_provider_returns_vectors_and_cost(monkeypatch) -> None:
@@ -36,3 +36,41 @@ def test_openai_embeddings_provider_rejects_unknown_model(monkeypatch) -> None:
 
     with pytest.raises(ValueError):
         OpenAIEmbeddingsProvider(api_key="sk-test", model="not-a-real-model")
+
+
+def test_gemini_embeddings_provider_returns_vectors_and_estimated_cost(monkeypatch) -> None:
+    fake_response = SimpleNamespace(
+        embeddings=[SimpleNamespace(values=[0.1, 0.2]), SimpleNamespace(values=[0.3, 0.4])],
+        metadata=SimpleNamespace(billable_character_count=400),
+    )
+    fake_client = MagicMock()
+    fake_client.models.embed_content.return_value = fake_response
+    monkeypatch.setattr("app.llm.embeddings.genai.Client", lambda api_key: fake_client)
+
+    provider = GeminiEmbeddingsProvider(api_key="test-key", model="gemini-embedding-001")
+    result = provider.embed(["a", "b"])
+
+    assert result.vectors == [[0.1, 0.2], [0.3, 0.4]]
+    # 400 chars / 4 chars-per-token estimate = 100 estimated tokens
+    assert result.tokens_used == 100
+    assert result.cost_usd == pytest.approx(100 / 1_000_000 * 0.15)
+
+
+def test_gemini_embeddings_provider_handles_missing_metadata(monkeypatch) -> None:
+    fake_response = SimpleNamespace(embeddings=[SimpleNamespace(values=[0.1])], metadata=None)
+    fake_client = MagicMock()
+    fake_client.models.embed_content.return_value = fake_response
+    monkeypatch.setattr("app.llm.embeddings.genai.Client", lambda api_key: fake_client)
+
+    provider = GeminiEmbeddingsProvider(api_key="test-key")
+    result = provider.embed(["a"])
+
+    assert result.tokens_used == 0
+    assert result.cost_usd == 0.0
+
+
+def test_gemini_embeddings_provider_rejects_unknown_model(monkeypatch) -> None:
+    monkeypatch.setattr("app.llm.embeddings.genai.Client", lambda api_key: MagicMock())
+
+    with pytest.raises(ValueError):
+        GeminiEmbeddingsProvider(api_key="test-key", model="not-a-real-model")
